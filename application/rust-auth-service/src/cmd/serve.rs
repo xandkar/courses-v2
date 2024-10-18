@@ -13,7 +13,8 @@ impl Cmd {
         tracing::info!(?srv, "Starting server.");
         let payload = self.payload.clone();
         let sock_addr = SocketAddr::from((srv.addr, srv.port));
-        let routes = axum::Router::new().route("/", axum::routing::get(|| async { payload }));
+        let routes = axum::Router::new()
+            .route("/", axum::routing::get(|| async { payload }));
         let listener = tokio::net::TcpListener::bind(sock_addr).await?;
         tracing::info!(?sock_addr, "Listening.");
         axum::serve(listener, routes).await?;
