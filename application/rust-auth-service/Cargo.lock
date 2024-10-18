@@ -1023,6 +1023,8 @@ dependencies = [
  "axum",
  "clap",
  "reqwest",
+ "serde",
+ "serde_json",
  "tokio",
  "tracing",
  "tracing-subscriber",

@@ -1,10 +1,16 @@
+use std::net::SocketAddr;
+
 use clap::Parser;
+use rust_auth_service::{client, server};
 use tracing::{error_span, Instrument};
 
 #[derive(Parser, Debug)]
 struct Cli {
-    #[clap(flatten)]
-    srv: rust_auth_service::cmd::Srv,
+    #[clap(short, long, default_value = "127.0.0.1")]
+    addr: std::net::IpAddr,
+
+    #[clap(short, long, default_value = "3000")]
+    port: u16,
 
     #[clap(subcommand)]
     cmd: Cmd,
@@ -12,8 +18,8 @@ struct Cli {
 
 #[derive(Debug, clap::Subcommand)]
 enum Cmd {
-    Serve(rust_auth_service::cmd::serve::Cmd),
-    Get(rust_auth_service::cmd::get::Cmd),
+    Serve,
+    Echo { text: String },
 }
 
 #[tokio::main]
@@ -21,15 +27,15 @@ async fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
     tracing_init(tracing::Level::DEBUG)?;
     tracing::debug!(?cli, "Starting.");
-    let Cli { srv, cmd } = cli;
-    let server_span = error_span!("server", ?srv);
-    let client_span = error_span!("client", ?srv);
-    match cmd {
-        Cmd::Serve(cmd) => {
-            cmd.run(&srv).instrument(server_span).await?;
+    let addr = SocketAddr::from((cli.addr, cli.port));
+    let server_span = error_span!("server", ?addr);
+    let client_span = error_span!("client", ?addr);
+    match cli.cmd {
+        Cmd::Serve => {
+            server::run(addr).instrument(server_span).await?;
         }
-        Cmd::Get(cmd) => {
-            cmd.run(&srv).instrument(client_span).await?;
+        Cmd::Echo { text } => {
+            client::echo(addr, &text).instrument(client_span).await?;
         }
     }
     Ok(())
